@@ -1,0 +1,36 @@
+CREATE TABLE Member (
+    Id SERIAL PRIMARY KEY,
+    Name VARCHAR(255) NOT NULL,
+    SurnName VARCHAR(255) NOT NULL,
+    BookingCount INT NOT NULL DEFAULT 0,
+    DateJoined TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE Inventory (
+    Id SERIAL PRIMARY KEY,
+    Title VARCHAR(255) NOT NULL,
+    Description TEXT NOT NULL,
+    RemainingCount INT NOT NULL DEFAULT 0,
+    ExpireDate TIMESTAMP NOT NULL
+);
+
+
+CREATE TABLE Booking (
+    Id SERIAL PRIMARY KEY,
+    MemberId INT NOT NULL,
+    InventoryId INT NOT NULL,
+    BookingDate DATE NOT NULL,
+    BookingTimeStamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    BookingReference UUID NOT NULL DEFAULT gen_random_uuid(),
+    BookingStatus INT NOT NULL,
+    CONSTRAINT fk_member FOREIGN KEY (MemberId) REFERENCES Member(Id) ON DELETE CASCADE,
+    CONSTRAINT fk_inventory FOREIGN KEY (InventoryId) REFERENCES Inventory(Id) ON DELETE CASCADE
+);
+
+
+select * from member
+select * from Inventory
+select * from booking b 
+
+
+
