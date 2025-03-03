@@ -1,0 +1,6 @@
+@TEN_BookingSystem.API_HostAddress = http://localhost:5263
+
+GET {{TEN_BookingSystem.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

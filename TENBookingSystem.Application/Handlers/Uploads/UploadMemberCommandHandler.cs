@@ -1,0 +1,77 @@
+﻿using CsvHelper;
+using CsvHelper.Configuration;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using System.Formats.Asn1;
+using System.Globalization;
+using System.Net;
+using TENBookingSystem.Application.Commands.Uploads;
+using TENBookingSystem.Application.Core;
+using TENBookingSystem.Application.Utility;
+using TENBookingSystem.DTO.Uploads;
+using TENBookingSystem.Entities.Members;
+using TENBookingSystem.Persistence;
+
+namespace TENBookingSystem.Application.Handlers.Uploads
+{
+    public class UploadMemberCommandHandler : IRequestHandler<UploadMemberCommand, Result<UplaodFileResult>>
+    {
+        private readonly DataContext _dataContext;
+        public UploadMemberCommandHandler(DataContext dataContext)
+        {
+            _dataContext = dataContext;
+        }
+        public async Task<Result<UplaodFileResult>> Handle(UploadMemberCommand request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                UplaodFileResult objResult = new UplaodFileResult();
+                using var reader = new StreamReader(request.File.OpenReadStream());
+                using (var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
+                {
+                    HeaderValidated = null, // Disables header validation
+                    MissingFieldFound = null // Optional: Avoid errors for missing fields
+                }))
+                {
+                    var records = csv.GetRecords<Member>().ToList();
+                    string ErrorCheckMessage = ValidateUploadFiles(records); // inside ValidateUploadFiles method we can make
+                                                                             // this more generic to make the input date as UTC and then check validaton for that
+                                                                             // as of now it is validating date based on system date
+                    if (string.IsNullOrEmpty(ErrorCheckMessage))
+                    {
+                        await _dataContext.Members.AddRangeAsync(records, cancellationToken);
+                        await _dataContext.SaveChangesAsync(cancellationToken);
+                        
+                        objResult.StatusMessage = "Member data uploaded successfully";                       
+                        return Result<UplaodFileResult>.Success(objResult);
+                    } else
+                    {
+                        objResult.ErrorMessage = ErrorCheckMessage;
+                        return Result<UplaodFileResult>.Success(objResult);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+                // we can use Rest exception here, using custome middleware for custome exception handling
+            }
+        }
+       static string ValidateUploadFiles(List<Member> members)
+        {
+            string ErrorMessage = "";
+            for (int i = 0; i < members.Count; i++)
+            {
+                string expectedFormat = "yyyy-MM-dd"; // Change to the required format
+                bool allMatch = HelperUtility.CheckDateFormat(members[i].DateJoined.ToString(), expectedFormat);
+                if (!allMatch)
+                {
+                    ErrorMessage = ErrorMessage + "Row Number " + (i + 1) + "Is having invalid date format " + members[i].DateJoined.ToString();
+                }
+                //similarly we can add validation for all fiedls
+            }
+            return ErrorMessage;
+        }
+
+    }
+}
